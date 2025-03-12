@@ -26,12 +26,11 @@ export default class MyPlugin extends Plugin {
     const statusBarItemEl = this.addStatusBarItem();
     statusBarItemEl.setText("Status Bar Text");
 
-    // This adds a simple command that can be triggered anywhere
     this.addCommand({
-      id: "open-sample-modal-simple",
-      name: "Open sample modal (simple)",
+      id: "open-modal-setting-budget",
+      name: "Настроить бюджет",
       callback: () => {
-        new SampleModal(this.app).open();
+        new BudgetSettingModal(this.app).open();
       },
     });
 
@@ -127,14 +126,60 @@ class FinancePluginView extends ItemView {
   }
 }
 
-class SampleModal extends Modal {
+class BudgetSettingModal extends Modal {
   constructor(app: App) {
     super(app);
+  }
+
+  private untilDate: string;
+
+  private changeInputHandler(el: HTMLInputElement) {
+    el.addEventListener("input", (evt: Event) => {
+      console.log(evt);
+      // Добавляем обработчик события input
+      // const value = (evt.target as HTMLInputElement).value;
+    });
+  }
+
+  private setUntilDate(el: HTMLInputElement) {
+    el.addEventListener("change", (evt: Event) => {
+      this.untilDate = (evt.target as HTMLInputElement).value;
+      console.log();
+    });
+  }
+
+  private saveButtonHandler(el: HTMLButtonElement) {
+    el.addEventListener("click", () => {
+      console.log("save");
+    });
   }
 
   onOpen() {
     const { contentEl } = this;
     contentEl.setText("Woah!");
+
+    const container = this.containerEl.children[1];
+    container.empty();
+
+    const wrapper = container.createDiv({
+      cls: ["w-full", "flex-col", "justify-center", "align-center"],
+    });
+    wrapper.createEl("h2", { text: "Настройте бюджет" });
+
+    // форма
+    const form = wrapper.createDiv({
+      cls: ["w-full", "flex-col", "justify-center", "align-center"],
+    });
+
+    form.createEl("span", { text: "Введите сумму:" });
+    form.createEl("input", undefined, (el) => this.changeInputHandler(el));
+
+    form.createEl("span", { text: "Срок (до какого числа):" });
+    form.createEl("input", { type: "date" }, (el) => this.setUntilDate(el));
+
+    form.createEl("button", { text: "Сохранить" }, (el) =>
+      this.saveButtonHandler(el)
+    );
   }
 
   onClose() {
