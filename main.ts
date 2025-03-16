@@ -1,4 +1,4 @@
-import { App, Modal, Plugin, ItemView, WorkspaceLeaf } from "obsidian";
+import { App, Modal, Plugin, ItemView, WorkspaceLeaf, Notice } from "obsidian";
 
 // Remember to rename these classes and interfaces!
 
@@ -67,14 +67,11 @@ export default class MyPlugin extends Plugin {
   }
 }
 
+// Панель справа
 class FinancePluginView extends ItemView {
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
   }
-
-  private amountPerDay: number = 0;
-  private today: string = new Date().toISOString().split("T")[0];
-  private untilDate: string; // дата до какого числа у нас сумму;
 
   getViewType(): string {
     return "finance-view"; // Возвращаем уникальный идентификатор
@@ -88,37 +85,51 @@ class FinancePluginView extends ItemView {
     return "dollar-sign"; // Иконка для панели
   }
 
-  private changeInputHandler(el: HTMLInputElement) {
-    el.addEventListener("input", (evt: Event) => {
-      console.log(evt);
-      // Добавляем обработчик события input
-      // const value = (evt.target as HTMLInputElement).value;
+  private getCurrentPeriodBudget() {
+    // Получаем данные из localStorage или других источников
+    return this.app.loadLocalStorage("totalBudget");
+  }
+
+  private settingsBudgetHandler(el: HTMLButtonElement) {
+    el.addEventListener("click", () => {
+      new BudgetSettingModal(this.app).open();
+    });
+
+    // Подписываемся на кастомное событие
+    document.addEventListener("totalBudgetSaved", (event: CustomEvent) => {
+      const periodBudget = event.detail;
+      this.renderBudgetInfo(periodBudget);
     });
   }
 
-  private setUntilDate(el: HTMLInputElement) {
-    el.addEventListener("change", (evt: Event) => {
-      this.untilDate = (evt.target as HTMLInputElement).value;
-      console.log();
+  private renderBudgetInfo(periodBudget) {
+    const container = this.containerEl.children[1];
+    container.empty();
+
+    const wrapper = container.createDiv({
+      cls: ["w-full", "flex-col", "justify-center", "align-center"],
+    });
+
+    wrapper.createEl("h2", {
+      text: `${periodBudget.totalAmount} до ${periodBudget.endDate}:`,
     });
   }
 
   async onOpen() {
     const container = this.containerEl.children[1];
-    container.empty();
-    container.createEl("h2", { text: "Welcome to Finance Plugin!" });
 
-    container.createEl("p", { text: "Введите сумму:" });
-    container.createEl("input", undefined, (el) => this.changeInputHandler(el));
+    const periodBudget = this.getCurrentPeriodBudget();
 
-    container.createEl("p", { text: "Срок (до какого числа):" });
-    container.createEl("input", { type: "date" }, (el) =>
-      this.setUntilDate(el)
-    );
+    if (!periodBudget) {
+      container.createEl(
+        "button",
+        { text: "Необходимо настроить бюджет" },
+        (el) => this.settingsBudgetHandler(el)
+      );
+      return;
+    }
 
-    container.createEl("p", {
-      text: `Срок (до какого числа):${this.amountPerDay}`,
-    });
+    this.renderBudgetInfo(periodBudget);
   }
 
   async onClose() {
@@ -126,38 +137,50 @@ class FinancePluginView extends ItemView {
   }
 }
 
+// Модальное окно с формой добавления суммы на срок
 class BudgetSettingModal extends Modal {
   constructor(app: App) {
     super(app);
   }
 
-  private untilDate: string;
+  private endDate: string;
+  private totalAmount: number;
 
-  private changeInputHandler(el: HTMLInputElement) {
+  private setTotalAmount(el: HTMLInputElement) {
     el.addEventListener("input", (evt: Event) => {
-      console.log(evt);
-      // Добавляем обработчик события input
-      // const value = (evt.target as HTMLInputElement).value;
+      this.totalAmount = (evt.target as HTMLInputElement)
+        .value as unknown as number;
     });
   }
 
   private setUntilDate(el: HTMLInputElement) {
     el.addEventListener("change", (evt: Event) => {
-      this.untilDate = (evt.target as HTMLInputElement).value;
-      console.log();
+      this.endDate = (evt.target as HTMLInputElement).value;
     });
   }
 
   private saveButtonHandler(el: HTMLButtonElement) {
     el.addEventListener("click", () => {
-      console.log("save");
+      const periodBudget = {
+        totalAmount: this.totalAmount,
+        endDate: this.endDate,
+      };
+
+      this.app.saveLocalStorage("totalBudget", periodBudget);
+
+      new Notice("Бюджет успешно сохранен!");
+
+      // Создаем и диспатчим кастомное событие, чтобы поймать его дальше
+      const event = new CustomEvent("totalBudgetSaved", {
+        detail: periodBudget,
+      });
+      document.dispatchEvent(event);
+
+      this.close();
     });
   }
 
   onOpen() {
-    const { contentEl } = this;
-    contentEl.setText("Woah!");
-
     const container = this.containerEl.children[1];
     container.empty();
 
@@ -168,11 +191,11 @@ class BudgetSettingModal extends Modal {
 
     // форма
     const form = wrapper.createDiv({
-      cls: ["w-full", "flex-col", "justify-center", "align-center"],
+      cls: ["w-full", "flex-col", "justify-center", "align-center", "gap-16"],
     });
 
     form.createEl("span", { text: "Введите сумму:" });
-    form.createEl("input", undefined, (el) => this.changeInputHandler(el));
+    form.createEl("input", { type: "number" }, (el) => this.setTotalAmount(el));
 
     form.createEl("span", { text: "Срок (до какого числа):" });
     form.createEl("input", { type: "date" }, (el) => this.setUntilDate(el));

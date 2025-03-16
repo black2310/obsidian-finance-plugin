@@ -31,3 +31,7 @@ If your plugin does not need CSS, delete this file.
 .h-full {
   height: 100%;
 }
+
+.gap-16 {
+  gap: 16px;
+}
