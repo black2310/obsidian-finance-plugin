@@ -33,11 +33,6 @@ export default class MyPlugin extends Plugin {
         new BudgetSettingModal(this.app).open();
       },
     });
-
-    // When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-    this.registerInterval(
-      window.setInterval(() => console.log("setInterval"), 5 * 60 * 1000)
-    );
   }
 
   async activateView() {
@@ -85,6 +80,14 @@ class FinancePluginView extends ItemView {
     return "dollar-sign"; // Иконка для панели
   }
 
+  // Вычисляем оставшееся количество дней между текущим и окончанием срока вынести в utils
+  private calculateDaysRemaining(endDate: Date): number {
+    const endDateNewDate = new Date(endDate);
+    const today = new Date();
+    const timeDifference = endDateNewDate.getTime() - today.getTime();
+    return Math.ceil(timeDifference / (1000 * 60 * 60 * 24));
+  }
+
   private getCurrentPeriodBudget() {
     // Получаем данные из localStorage или других источников
     return this.app.loadLocalStorage("totalBudget");
@@ -106,12 +109,41 @@ class FinancePluginView extends ItemView {
     const container = this.containerEl.children[1];
     container.empty();
 
+    // форматируем числа в виде валюты, вынести в utils
+    const optionsOfFormat = { locales: "currency", currency: "RUB" };
+    const numberFormat = new Intl.NumberFormat("ru-RU", optionsOfFormat);
+
     const wrapper = container.createDiv({
-      cls: ["w-full", "flex-col", "justify-center", "align-center"],
+      cls: ["w-full", "flex-col"],
     });
 
+    // общая инфа в виде сумма всего и до какого числа
     wrapper.createEl("h2", {
-      text: `${periodBudget.totalAmount} до ${periodBudget.endDate}:`,
+      text: `${numberFormat.format(periodBudget.totalAmount)} до ${
+        periodBudget.endDate
+      }`,
+    });
+
+    const daysLeft = this.calculateDaysRemaining(periodBudget.endDate);
+    const daysAmount = Math.round(periodBudget.totalAmount / daysLeft);
+
+    // // Сумма доступная на текущий день
+    wrapper.createEl("h3", {
+      text: `${numberFormat.format(daysAmount)} на ${daysLeft} дней`,
+    });
+
+    console.log(daysLeft);
+  }
+
+  private processExpenseAmount(el: HTMLInputElement) {
+    el.addEventListener("keypress", (evt: Event) => {
+      console.log(evt);
+      const amount = (evt.target as HTMLInputElement)
+        .value as unknown as number;
+
+      if (evt.key === "Enter") {
+        console.log(amount);
+      }
     });
   }
 
@@ -130,6 +162,14 @@ class FinancePluginView extends ItemView {
     }
 
     this.renderBudgetInfo(periodBudget);
+
+    container.createEl(
+      "input",
+      { type: "number", cls: "w-full", value: "0" },
+      (el) => {
+        this.processExpenseAmount(el);
+      }
+    );
   }
 
   async onClose() {
