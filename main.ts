@@ -2,6 +2,7 @@ import { Plugin } from "obsidian";
 import { BudgetService } from "./src/services/budget.service";
 import { FinancePluginView } from "./src/ui/views/finance-plugin.view";
 import { BudgetSettingModal } from "./src/ui/modals/budget-settings.modal";
+import { Chart, registerables } from "chart.js";
 
 // Remember to rename these classes and interfaces!
 
@@ -20,13 +21,12 @@ export default class FinancePlugin extends Plugin {
   async onload() {
     await this.loadSettings();
 
+    Chart.register(...registerables);
+
     // Инициализация BudgetService
     this.budgetService = new BudgetService(this.app);
 
-    this.registerView(
-      "finance-view",
-      (leaf) => new FinancePluginView(leaf, this.budgetService)
-    );
+    this.registerView("finance-view", (leaf) => new FinancePluginView(leaf));
 
     this.addRibbonIcon("dollar-sign", "Open Finance Panel", () => {
       this.activateView();

@@ -1,4 +1,4 @@
-import { ItemView, Modal, WorkspaceLeaf } from "obsidian";
+import { ItemView, WorkspaceLeaf } from "obsidian";
 import { BudgetService, BudgetInfo } from "../../services/budget.service";
 import { calculateDaysRemaining } from "../../utils/index";
 import { BudgetSettingModal } from "../modals/budget-settings.modal";
