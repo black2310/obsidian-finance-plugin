@@ -1,4 +1,6 @@
 import { App, Modal, Plugin, ItemView, WorkspaceLeaf, Notice } from "obsidian";
+import { BudgetService, BudgetInfo } from "./src/services/budget.service";
+import { calculateDaysRemaining } from "./src/utils";
 
 // Remember to rename these classes and interfaces!
 
@@ -21,10 +23,6 @@ export default class MyPlugin extends Plugin {
     this.addRibbonIcon("dollar-sign", "Open Finance Panel", () => {
       this.activateView();
     });
-
-    // This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-    const statusBarItemEl = this.addStatusBarItem();
-    statusBarItemEl.setText("Status Bar Text");
 
     this.addCommand({
       id: "open-modal-setting-budget",
@@ -80,17 +78,8 @@ class FinancePluginView extends ItemView {
     return "dollar-sign"; // Иконка для панели
   }
 
-  // Вычисляем оставшееся количество дней между текущим и окончанием срока вынести в utils
-  private calculateDaysRemaining(endDate: Date): number {
-    const endDateNewDate = new Date(endDate);
-    const today = new Date();
-    const timeDifference = endDateNewDate.getTime() - today.getTime();
-    return Math.ceil(timeDifference / (1000 * 60 * 60 * 24));
-  }
-
-  private getCurrentPeriodBudget() {
-    // Получаем данные из localStorage или других источников
-    return this.app.loadLocalStorage("totalBudget");
+  getBudgetInfo() {
+    return new BudgetService(this.app).getCurrentBudget();
   }
 
   private settingsBudgetHandler(el: HTMLButtonElement) {
@@ -100,12 +89,11 @@ class FinancePluginView extends ItemView {
 
     // Подписываемся на кастомное событие
     document.addEventListener("totalBudgetSaved", (event: CustomEvent) => {
-      const periodBudget = event.detail;
-      this.renderBudgetInfo(periodBudget);
+      this.renderBudgetInfo(event.detail);
     });
   }
 
-  private renderBudgetInfo(periodBudget) {
+  private renderBudgetInfo(periodBudget: BudgetInfo): void {
     const container = this.containerEl.children[1];
     container.empty();
 
@@ -124,25 +112,34 @@ class FinancePluginView extends ItemView {
       }`,
     });
 
-    const daysLeft = this.calculateDaysRemaining(periodBudget.endDate);
-    const daysAmount = Math.round(periodBudget.totalAmount / daysLeft);
+    const daysLeft = calculateDaysRemaining(periodBudget.endDate);
 
-    // // Сумма доступная на текущий день
+    // Сумма доступная на текущий день
     wrapper.createEl("h3", {
-      text: `${numberFormat.format(daysAmount)} на ${daysLeft} дней`,
+      text: `${numberFormat.format(
+        periodBudget.amountOnDay as number
+      )} на ${daysLeft} дней`,
     });
 
-    console.log(daysLeft);
+    container.createEl(
+      "input",
+      { type: "number", cls: "w-full", value: "0" },
+      (el) => {
+        this.processExpenseAmount(el);
+      }
+    );
   }
 
-  private processExpenseAmount(el: HTMLInputElement) {
-    el.addEventListener("keypress", (evt: Event) => {
-      console.log(evt);
+  private processExpenseAmount(el: HTMLInputElement): void {
+    el.addEventListener("keypress", (evt: KeyboardEvent) => {
       const amount = (evt.target as HTMLInputElement)
         .value as unknown as number;
 
       if (evt.key === "Enter") {
-        console.log(amount);
+        const updatedBudgetInfo = new BudgetService(this.app).setExpense(
+          amount
+        );
+        this.renderBudgetInfo(updatedBudgetInfo);
       }
     });
   }
@@ -150,9 +147,9 @@ class FinancePluginView extends ItemView {
   async onOpen() {
     const container = this.containerEl.children[1];
 
-    const periodBudget = this.getCurrentPeriodBudget();
+    const periodBudget: BudgetInfo = this.getBudgetInfo();
 
-    if (!periodBudget) {
+    if (periodBudget.totalAmount === 0) {
       container.createEl(
         "button",
         { text: "Необходимо настроить бюджет" },
@@ -162,14 +159,6 @@ class FinancePluginView extends ItemView {
     }
 
     this.renderBudgetInfo(periodBudget);
-
-    container.createEl(
-      "input",
-      { type: "number", cls: "w-full", value: "0" },
-      (el) => {
-        this.processExpenseAmount(el);
-      }
-    );
   }
 
   async onClose() {
@@ -201,12 +190,12 @@ class BudgetSettingModal extends Modal {
 
   private saveButtonHandler(el: HTMLButtonElement) {
     el.addEventListener("click", () => {
-      const periodBudget = {
+      const periodBudget: BudgetInfo = {
         totalAmount: this.totalAmount,
         endDate: this.endDate,
       };
 
-      this.app.saveLocalStorage("totalBudget", periodBudget);
+      new BudgetService(this.app).saveBudget(periodBudget);
 
       new Notice("Бюджет успешно сохранен!");
 
