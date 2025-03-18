@@ -12,7 +12,7 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
   mySetting: "default",
 };
 
-export default class MyPlugin extends Plugin {
+export default class FinancePlugin extends Plugin {
   settings: MyPluginSettings;
   budgetService: BudgetService;
 
