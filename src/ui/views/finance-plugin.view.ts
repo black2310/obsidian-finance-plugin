@@ -1,6 +1,6 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { BudgetService, BudgetInfo } from "../../services/budget.service";
-import { calculateDaysRemaining } from "../../utils/index";
+import { calculateDaysRemaining, formatCurrency } from "../../utils/index";
 import { BudgetSettingModal } from "../modals/budget-settings.modal";
 
 export class FinancePluginView extends ItemView {
@@ -49,29 +49,22 @@ export class FinancePluginView extends ItemView {
     const container = this.containerEl.children[1];
     container.empty();
 
-    // форматируем числа в виде валюты, вынести в utils
-    const optionsOfFormat = { locales: "currency", currency: "RUB" };
-    const numberFormat = new Intl.NumberFormat("ru-RU", optionsOfFormat);
-
     const wrapper = container.createDiv({
       cls: ["w-full", "flex-col"],
     });
 
     // общая инфа в виде сумма всего и до какого числа
     wrapper.createEl("h2", {
-      text: `${numberFormat.format(periodBudget.totalAmount)} до ${
+      text: `${formatCurrency(periodBudget.totalAmount)} до ${
         periodBudget.endDate
       }`,
     });
 
     const daysLeft = calculateDaysRemaining(periodBudget.endDate);
 
-    console.log(periodBudget);
     // Сумма доступная на текущий день
     wrapper.createEl("h3", {
-      text: `${numberFormat.format(
-        periodBudget.amountOnDay as number
-      )} на ${daysLeft} дней`,
+      text: `${formatCurrency(periodBudget.amountOnDay as number)} на сегодня`,
     });
 
     container.createEl(
