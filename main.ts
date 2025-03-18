@@ -14,11 +14,18 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 
 export default class MyPlugin extends Plugin {
   settings: MyPluginSettings;
+  budgetService: BudgetService;
 
   async onload() {
     await this.loadSettings();
 
-    this.registerView("finance-view", (leaf) => new FinancePluginView(leaf));
+    // Инициализация BudgetService
+    this.budgetService = new BudgetService(this.app);
+
+    this.registerView(
+      "finance-view",
+      (leaf) => new FinancePluginView(leaf, this.budgetService)
+    );
 
     this.addRibbonIcon("dollar-sign", "Open Finance Panel", () => {
       this.activateView();
@@ -28,7 +35,7 @@ export default class MyPlugin extends Plugin {
       id: "open-modal-setting-budget",
       name: "Настроить бюджет",
       callback: () => {
-        new BudgetSettingModal(this.app).open();
+        new BudgetSettingModal(this.app, this.budgetService).open();
       },
     });
   }
@@ -62,8 +69,11 @@ export default class MyPlugin extends Plugin {
 
 // Панель справа
 class FinancePluginView extends ItemView {
-  constructor(leaf: WorkspaceLeaf) {
+  private budgetService: BudgetService;
+
+  constructor(leaf: WorkspaceLeaf, budgetService: BudgetService) {
     super(leaf);
+    this.budgetService = budgetService; // Сохраняем переданный экземпляр
   }
 
   getViewType(): string {
@@ -79,12 +89,12 @@ class FinancePluginView extends ItemView {
   }
 
   getBudgetInfo() {
-    return new BudgetService(this.app).getCurrentBudget();
+    return this.budgetService.getCurrentBudget();
   }
 
   private settingsBudgetHandler(el: HTMLButtonElement) {
     el.addEventListener("click", () => {
-      new BudgetSettingModal(this.app).open();
+      new BudgetSettingModal(this.app, this.budgetService).open();
     });
 
     // Подписываемся на кастомное событие
@@ -136,9 +146,7 @@ class FinancePluginView extends ItemView {
         .value as unknown as number;
 
       if (evt.key === "Enter") {
-        const updatedBudgetInfo = new BudgetService(this.app).setExpense(
-          amount
-        );
+        const updatedBudgetInfo = this.budgetService.setExpense(amount);
         this.renderBudgetInfo(updatedBudgetInfo);
       }
     });
@@ -168,8 +176,10 @@ class FinancePluginView extends ItemView {
 
 // Модальное окно с формой добавления суммы на срок
 class BudgetSettingModal extends Modal {
-  constructor(app: App) {
+  private budgetService: BudgetService;
+  constructor(app: App, budgetService: BudgetService) {
     super(app);
+    this.budgetService = budgetService;
   }
 
   private endDate: string;
@@ -195,7 +205,7 @@ class BudgetSettingModal extends Modal {
         endDate: this.endDate,
       };
 
-      new BudgetService(this.app).saveBudget(periodBudget);
+      this.budgetService.saveBudget(periodBudget);
 
       new Notice("Бюджет успешно сохранен!");
 
