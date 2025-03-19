@@ -1,5 +1,5 @@
-export class ListExpenses extends HTMLElement {
-  public static readonly TAG_NAME = "list-expenses";
+export class List extends HTMLElement {
+  public static readonly TAG_NAME = "list";
   private listElement: HTMLUListElement;
 
   constructor() {
@@ -56,4 +56,4 @@ export class ListExpenses extends HTMLElement {
   }
 }
 
-customElements.define(ListExpenses.TAG_NAME, ListExpenses);
+customElements.define(List.TAG_NAME, List);
