@@ -1,7 +1,7 @@
 import { Plugin } from "obsidian";
-import { BudgetService } from "./src/services/budget.service";
-import { FinancePluginView } from "./src/ui/views/finance-plugin.view";
-import { BudgetSettingModal } from "./src/ui/modals/budget-settings.modal";
+import { BudgetService } from "@/services/budget.service";
+import { FinancePluginView } from "@/ui/views/finance-plugin.view";
+import { BudgetSettingModal } from "@/ui/modals/budget-settings.modal";
 import { Chart, registerables } from "chart.js";
 
 // Remember to rename these classes and interfaces!

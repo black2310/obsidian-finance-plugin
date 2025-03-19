@@ -1,5 +1,5 @@
 import { App, Modal, Notice } from "obsidian";
-import { BudgetService, BudgetInfo } from "../../services/budget.service";
+import { BudgetService, BudgetInfo } from "@/services/budget.service";
 
 export class BudgetSettingModal extends Modal {
   private budgetService: BudgetService;

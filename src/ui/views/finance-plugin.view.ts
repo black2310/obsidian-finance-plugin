@@ -1,11 +1,13 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
-import { BudgetService, BudgetInfo } from "../../services/budget.service";
-import { formatCurrency } from "../../utils/index";
-import { BudgetSettingModal } from "../modals/budget-settings.modal";
+import { BudgetService, BudgetInfo } from "@/services/budget.service";
+import { formatCurrency } from "@/utils/index";
+import { BudgetSettingModal } from "@/ui/modals/budget-settings.modal";
+import { List } from "@/ui/components/list.web-component";
 
 export class FinancePluginView extends ItemView {
   private budgetService: BudgetService;
   private budgetSettingModal;
+  private listExpenses;
 
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
@@ -14,6 +16,9 @@ export class FinancePluginView extends ItemView {
       this.app,
       this.budgetService
     );
+
+    this.listExpenses = document.createElement(List.TAG_NAME);
+
     document.addEventListener("totalBudgetSaved", this.handleBudgetSaved);
   }
 
@@ -64,13 +69,19 @@ export class FinancePluginView extends ItemView {
       text: `${formatCurrency(periodBudget.amountOnDay as number)} на сегодня`,
     });
 
-    container.createEl(
+    wrapper.createEl(
       "input",
       { type: "number", cls: "w-full", value: "0" },
       (el) => {
         this.processExpenseAmount(el);
       }
     );
+
+    const listExpenses = document.createElement(
+      ListExpenses.TAG_NAME
+    ) as ListExpenses;
+
+    wrapper.appendChild(listExpenses);
   }
 
   private processExpenseAmount(el: HTMLInputElement): void {
