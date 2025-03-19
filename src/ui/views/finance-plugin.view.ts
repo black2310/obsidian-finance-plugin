@@ -1,6 +1,6 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { BudgetService, BudgetInfo } from "../../services/budget.service";
-import { calculateDaysRemaining, formatCurrency } from "../../utils/index";
+import { formatCurrency } from "../../utils/index";
 import { BudgetSettingModal } from "../modals/budget-settings.modal";
 
 export class FinancePluginView extends ItemView {
@@ -34,8 +34,7 @@ export class FinancePluginView extends ItemView {
   }
 
   private handleBudgetSaved = (event: Event) => {
-    const customEvent = event as CustomEvent<BudgetInfo>; // Приводим тип
-    console.log("Событие получено"); // Лог для проверки
+    const customEvent = event as CustomEvent<BudgetInfo>;
     this.renderBudgetInfo(customEvent.detail);
   };
 
@@ -59,8 +58,6 @@ export class FinancePluginView extends ItemView {
         periodBudget.endDate
       }`,
     });
-
-    const daysLeft = calculateDaysRemaining(periodBudget.endDate);
 
     // Сумма доступная на текущий день
     wrapper.createEl("h3", {
@@ -107,6 +104,5 @@ export class FinancePluginView extends ItemView {
 
   async onClose() {
     document.removeEventListener("totalBudgetSaved", this.handleBudgetSaved);
-    // Очистка ресурсов, если нужно
   }
 }
